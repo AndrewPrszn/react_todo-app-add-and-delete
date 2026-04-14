@@ -45,7 +45,7 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    loadTodos();
+    setTimeout(loadTodos, 0);
   }, []);
 
   useEffect(() => {
