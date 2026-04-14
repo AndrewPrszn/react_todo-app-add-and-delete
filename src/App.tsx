@@ -9,12 +9,22 @@ import { getTodos } from './api/todos';
 import { addTodo } from './api/todos';
 import { deleteTodo } from './api/todos';
 
+enum ErrorMessage {
+  Load = 'Unable to load todos',
+  Add = 'Unable to add a todo',
+  Delete = 'Unable to delete a todo',
+  EmptyTitle = 'Title should not be empty',
+}
+
+enum Filter {
+  All = 'all',
+  Active = 'active',
+  Completed = 'completed',
+}
+
 export const App: React.FC = () => {
   const [todos, setTodos] = React.useState<Todo[]>([]);
   const [error, setError] = React.useState<string | null>(null);
-  const [filter, setFilter] = React.useState<'all' | 'active' | 'completed'>(
-    'all',
-  );
   const [newTitle, setNewTitle] = React.useState('');
   const [tempTodo, setTempTodo] = React.useState<Todo | null>(null);
   const [isAdding, setIsAdding] = React.useState(false);
@@ -32,10 +42,17 @@ export const App: React.FC = () => {
 
       setTodos(data);
     } catch (e) {
-      setError('Unable to load todos');
+      setError(ErrorMessage.Load);
     } finally {
     }
   };
+
+  const [filter, setFilter] = React.useState<Filter>(Filter.All);
+  const filters = [
+    { label: 'All', value: Filter.All, href: '#/' },
+    { label: 'Active', value: Filter.Active, href: '#/active' },
+    { label: 'Completed', value: Filter.Completed, href: '#/completed' },
+  ];
 
   useEffect(() => {
     loadTodos();
@@ -59,10 +76,10 @@ export const App: React.FC = () => {
 
   const visibleTodos = useMemo(() => {
     switch (filter) {
-      case 'active':
+      case Filter.Active:
         return todos.filter(todo => !todo.completed);
 
-      case 'completed':
+      case Filter.Completed:
         return todos.filter(todo => todo.completed);
 
       default:
@@ -75,7 +92,7 @@ export const App: React.FC = () => {
     const trimmed = newTitle.trim();
 
     if (!trimmed) {
-      setError('Title should not be empty');
+      setError(ErrorMessage.EmptyTitle);
 
       return;
     }
@@ -100,7 +117,7 @@ export const App: React.FC = () => {
       setTodos(prev => [...prev, created]);
       setNewTitle('');
     } catch (event) {
-      setError('Unable to add a todo');
+      setError(ErrorMessage.Add);
     } finally {
       setTempTodo(null);
       setIsAdding(false);
@@ -115,7 +132,7 @@ export const App: React.FC = () => {
 
       setTodos(prev => prev.filter(todo => todo.id !== id));
     } catch {
-      setError('Unable to delete a todo');
+      setError(ErrorMessage.Delete);
     } finally {
       setDeleteIds(prev => prev.filter(deleteId => deleteId !== id));
     }
@@ -139,7 +156,7 @@ export const App: React.FC = () => {
     setTodos(prev => prev.filter(todo => !successfulIds.includes(todo.id)));
 
     if (results.some(r => r.status === 'rejected')) {
-      setError('Unable to delete a todo');
+      setError(ErrorMessage.Delete);
     }
   };
 
@@ -249,44 +266,23 @@ export const App: React.FC = () => {
               {activeCount} items left
             </span>
             {/* Active link should have the 'selected' class */}
+
             <nav className="filter" data-cy="Filter">
-              <a
-                href="#/"
-                className={`filter__link ${filter === 'all' ? 'selected' : ''}`}
-                onClick={e => {
-                  e.preventDefault();
-                  setFilter('all');
-                }}
-                data-cy="FilterLinkAll"
-              >
-                All
-              </a>
-
-              <a
-                href="#/active"
-                className={`filter__link ${filter === 'active' ? 'selected' : ''}`}
-                onClick={e => {
-                  e.preventDefault();
-                  setFilter('active');
-                }}
-                data-cy="FilterLinkActive"
-              >
-                Active
-              </a>
-
-              <a
-                href="#/completed"
-                className={`filter__link ${filter === 'completed' ? 'selected' : ''}`}
-                onClick={e => {
-                  e.preventDefault();
-                  setFilter('completed');
-                }}
-                data-cy="FilterLinkCompleted"
-              >
-                Completed
-              </a>
+              {filters.map(f => (
+                <a
+                  key={f.value}
+                  href={f.href}
+                  className={`filter__link ${filter === f.value ? 'selected' : ''}`}
+                  onClick={e => {
+                    e.preventDefault();
+                    setFilter(f.value);
+                  }}
+                  data-cy={`FilterLink${f.label}`}
+                >
+                  {f.label}
+                </a>
+              ))}
             </nav>
-
             {/* this button should be disabled if there are no completed todos */}
             <button
               type="button"
